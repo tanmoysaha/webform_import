@@ -1,0 +1,6 @@
+; $Id$
+name = Webform Import
+description = Enables the upload of webform values from a delimited file.
+core = 6.x
+package = Webform
+dependencies[] = webform
