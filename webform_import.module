@@ -87,8 +87,10 @@ function webform_import_csvtemplate($node, $type) {
     'form_key' => 'SID',
   );
   if (array_key_exists($type, $types)) {
+
     foreach ($node->webform['components'] as $cid => $component) {
-      if ($component['type'] != 'file' && $component['type'] != 'fieldset' && $component['type'] != 'markup' && $component['type'] != 'pagebreak') {
+      $ctype = ( array_key_exists('type',$component) ? $component['type'] : '' );
+      if ($ctype != 'file' && $ctype != 'fieldset' && $ctype != 'markup' && $ctype != 'pagebreak') {
         $headers[] = $component[$type];
       }
     }
@@ -141,8 +143,8 @@ function webform_import_form($node, $form_state) {
   // @TODO Move these inline style elements into a css file.
   $component_table = array();
   $component_table['header'] = array(
-    array('data' => "<div><div style='float:left;'>" . t('Field Names') . "</div>&nbsp;<div style='float: right;'>[ " . l('download template', 'node/' . $node->nid . '/webform-results/upload/name') . ' ]</div></div>'),
-    array('data' => "<div><div style='float:left;'>" . t('Field Form Keys') . "</div>&nbsp;<div style='float: right;'>[ " . l('download template', 'node/' . $node->nid . '/webform-results/upload/form_key') . ' ]</div></div>'),
+    array('data' => "<div><div style='float:left;'>" . t('Field Names') . "</div>&nbsp;<div style='float: right;'> " . l('download template', 'node/' . $node->nid . '/webform-results/upload/name',array('attributes'=>array('class'=>'button'))) . ' </div></div>'),
+    array('data' => "<div><div style='float:left;'>" . t('Field Form Keys') . "</div>&nbsp;<div style='float: right;'> " . l('download template', 'node/' . $node->nid . '/webform-results/upload/form_key',array('attributes'=>array('class'=>'button'))) . ' </div></div>'),
   );
   $component_table['rows'] = array();
   $component_table['rows'][] = array('Submission ID', 'SID');
@@ -355,7 +357,7 @@ function _webform_import_import($form, $form_state, $file) {
         $v = _webform_import_csvfieldtrim($v);
         if ($v == '') {
           // Checking mandatory field for a value.
-          if ($keys[$fields[$k]]['mandatory']) {
+          if (array_key_exists('mandatory',$keys[$fields[$k]]) && $keys[$fields[$k]]['mandatory']) {
             drupal_set_message(t('Required field has no value at row,col: @r,@c.  Skipping this row!', array('@r' => $c, '@c' => $k)), 'warning');
             continue 2;
           }
@@ -424,7 +426,7 @@ function _webform_import_import($form, $form_state, $file) {
     watchdog('webform-import', 'File could not be deleted (cleanup process). File: %file at path %path . !details', array('%file' => $file->filename, '%path' => $file->destination, '!results' => '<br />\n<pre>' . htmlentities(print_r($form_state['values'], TRUE)) . '</pre>'), WATCHDOG_ERROR);
   }
 
-  drupal_set_message(t('We uploaded @count sids', array( '@count' => count($sids))));
+  drupal_set_message(t('We uploaded @count submissions', array( '@count' => count($sids))));
   watchdog('webform-import', 'Submission file uploaded to %title.', array('%title' => check_plain($webform->title), '!results' => '<br />\n<pre>' . htmlentities(print_r($form_state['values'], TRUE)) . '</pre>'));
 
 }
