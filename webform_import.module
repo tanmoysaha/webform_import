@@ -161,6 +161,12 @@ function webform_import_form($node, $form_state) {
       array( 'data' => $component['form_key'], 'style' => $style ),
     );
   }
+  // Include Submission Date
+  $component_table['rows'][] = array(
+      array( 'data' => 'Submission DateTime', 'style' => $style ),
+      array( 'data' => 'submitted_datetime', 'style' => $style ),
+  );  
+
 
   $form['header'] = array(
     '#type' => 'item',
@@ -199,7 +205,8 @@ function webform_import_form($node, $form_state) {
       '<p>' . t('The file must use the following values for column headers, anything else will be ignored.') .
       theme('table', $component_table) .
       '<small>' . t('* bold names are mandatory and must contain a value') . '</small></p><br/>' .
-      '<p>' . t('All rows with a submission id (SID) will be updated. Those without a submission id will be inserted.') .
+      '<p>' . t('All rows with a submission id (SID) will be updated. Those without a submission id will be inserted.') . '<br/>' .
+	  t('All rows without submitted time will be inserted with current system time.') .  
       '</p><br/>' .
       theme('item_list', $instructions_items) . '</div>',
   );
@@ -316,6 +323,7 @@ function _webform_import_import($form, $form_state, $file) {
 
   while (!feof($handle)) {
     $c++;
+	$submitted = time();
     $data = fgetcsv($handle, 0, $delimiter);
 
     // Ignore empty rows.
@@ -327,6 +335,11 @@ function _webform_import_import($form, $form_state, $file) {
       $arraylen = count($data);
       foreach ($data as $k => &$v) {
         $v = _webform_import_csvfieldtrim($v);
+		// Identify the Key of Submitted Time
+		if($v == 'Submission DateTime' || $v == 'submitted_datetime'){
+			$submitted_key = $k;
+			continue;
+		}		
         if (!$keys[$v]) {
           drupal_set_message(t('Can not find column @k in components list, skipping.', array('@k' => $v)), 'warning');
         }
@@ -396,12 +409,22 @@ function _webform_import_import($form, $form_state, $file) {
           }
           $sub_array[$cid] = $v;
         }
+		// Checking Submission DateTime input security.
+		if ($k === $submitted_key) {
+		  $date = DateTime::createFromFormat("d.m.Y", $v);
+		  if ($date !== FALSE) {
+			drupal_set_message(t('Invalid Submission Time at row,col: @r,@c.', array('@r' => $c, '@c' => $k)), 'warning');
+    	  }
+		  else {
+			$submitted = $v;
+		  }
+		}
       }
 
       $submission = (object) array(
         'nid' => $webform->nid,
         'uid' => $user->uid,
-        'submitted' => time(),
+        'submitted' => $submitted,
         'remote_addr' => ip_address(),
         'is_draft' => 0,
         'data' => webform_submission_data($webform, $sub_array),
